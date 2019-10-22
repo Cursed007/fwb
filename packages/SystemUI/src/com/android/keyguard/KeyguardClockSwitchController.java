@@ -256,6 +256,7 @@ public class KeyguardClockSwitchController extends ViewController<KeyguardClockS
 
         mKeyguardUnlockAnimationController.addKeyguardUnlockAnimationListener(
                 mKeyguardUnlockAnimationListener);
+        mView.refreshLockFont();
     }
 
     int getNotificationIconAreaHeight() {
@@ -319,6 +320,7 @@ public class KeyguardClockSwitchController extends ViewController<KeyguardClockS
                 MATCH_PARENT);
         lp.topMargin = largeClockTopMargin;
         mLargeClockFrame.setLayoutParams(lp);
+        mView.refreshLockFont();
     }
 
     /**
@@ -346,6 +348,13 @@ public class KeyguardClockSwitchController extends ViewController<KeyguardClockS
     }
 
     /**
+     * Get the clock fonts
+     */
+    public void getLockClockFont() {
+       mView.refreshLockFont();
+    }
+
+    /**
      * If we're presenting a custom clock of just the default one.
      */
     public boolean hasCustomClock() {
@@ -366,11 +375,11 @@ public class KeyguardClockSwitchController extends ViewController<KeyguardClockS
         if (mClockViewController != null) {
             mClockViewController.refreshTime();
             mLargeClockViewController.refreshTime();
+            mView.refreshLockFont();
         }
         if (mSmartspaceController != null) {
             mSmartspaceController.requestSmartspaceUpdate();
         }
-
         mView.refresh();
     }
 
@@ -408,6 +417,7 @@ public class KeyguardClockSwitchController extends ViewController<KeyguardClockS
         if (mClockViewController != null) {
             mClockViewController.refreshFormat();
             mLargeClockViewController.refreshFormat();
+            mView.refreshLockFont();
         }
     }
 

@@ -217,6 +217,7 @@ public class KeyguardStatusViewController extends ViewController<KeyguardStatusV
 
     private void refreshTime() {
         mKeyguardClockSwitchController.refresh();
+        mKeyguardClockSwitchController.getLockClockFont();
     }
 
     private final ConfigurationController.ConfigurationListener mConfigurationListener =
@@ -242,6 +243,7 @@ public class KeyguardStatusViewController extends ViewController<KeyguardStatusV
         @Override
         public void onTimeFormatChanged(String timeFormat) {
             mKeyguardClockSwitchController.refreshFormat();
+            mKeyguardClockSwitchController.getLockClockFont();
         }
 
         @Override
@@ -260,6 +262,7 @@ public class KeyguardStatusViewController extends ViewController<KeyguardStatusV
         @Override
         public void onUserSwitchComplete(int userId) {
             mKeyguardClockSwitchController.refreshFormat();
+            mKeyguardClockSwitchController.getLockClockFont();
         }
     };
 
