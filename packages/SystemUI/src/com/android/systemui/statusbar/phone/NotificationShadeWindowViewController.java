@@ -108,6 +108,8 @@ public class NotificationShadeWindowViewController {
 
     private boolean mIsTrackingBarGesture = false;
 
+    private boolean mDoubleTapEnabledNative;
+
     @Inject
     public NotificationShadeWindowViewController(
             LockscreenShadeTransitionController transitionController,
@@ -178,6 +180,11 @@ public class NotificationShadeWindowViewController {
                 final AmbientDisplayConfiguration configuration =
                     new AmbientDisplayConfiguration(mView.getContext());
                 switch (uri.getLastPathSegment()) {
+                    case Settings.Secure.DOUBLE_TAP_TO_WAKE:
+                        mDoubleTapEnabledNative = mSecureSettings.getIntForUser(
+                            Settings.Secure.DOUBLE_TAP_TO_WAKE, 0,
+                            UserHandle.USER_CURRENT) == 1;
+                        break;
                     case Settings.Secure.DOZE_DOUBLE_TAP_GESTURE:
                         mDoubleTapEnabled = configuration.doubleTapGestureEnabled(
                                 UserHandle.USER_CURRENT);
@@ -198,6 +205,9 @@ public class NotificationShadeWindowViewController {
             }
         };
 
+        mSecureSettings.registerContentObserverForUser(
+            Settings.Secure.DOUBLE_TAP_TO_WAKE,
+            contentObserver, UserHandle.USER_ALL);
         mSecureSettings.registerContentObserverForUser(
             Settings.Secure.DOZE_DOUBLE_TAP_GESTURE,
             contentObserver, UserHandle.USER_ALL);
@@ -224,7 +234,7 @@ public class NotificationShadeWindowViewController {
 
                     @Override
                     public boolean onDoubleTap(MotionEvent e) {
-                        if (mDoubleTapEnabled || mSingleTapEnabled) {
+                        if (mDoubleTapEnabled || mSingleTapEnabled || mDoubleTapEnabledNative) {
                             mService.wakeUpIfDozing(
                                     SystemClock.uptimeMillis(), mView, "DOUBLE_TAP");
                             return true;

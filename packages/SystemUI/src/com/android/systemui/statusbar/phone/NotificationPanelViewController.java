@@ -4523,8 +4523,10 @@ public class NotificationPanelViewController extends PanelViewController {
                     return false;
                 }
 
-                if (mBarState == StatusBarState.KEYGUARD) {
-                    mDoubleTapGestureListener.onTouchEvent(event);
+                if ((mIsLockscreenDoubleTapEnabled && !mPulsing && !mDozing) ||
+                        (!mQsExpanded && mDoubleTapToSleepEnabled
+                        && event.getY() < mStatusBarHeaderHeight)) {
+                    mDoubleTapToSleepGesture.onTouchEvent(event);
                 }
 
                 // Make sure the next touch won't the blocked after the current ends.
@@ -4537,13 +4539,6 @@ public class NotificationPanelViewController extends PanelViewController {
                 // In such case, simply expand the panel instead of being stuck at the bottom bar.
                 if (mLastEventSynthesizedDown && event.getAction() == MotionEvent.ACTION_UP) {
                     expand(true /* animate */);
-                }
-
-                if ((mIsLockscreenDoubleTapEnabled && !mPulsing && !mDozing
-                        && mBarState == StatusBarState.KEYGUARD) ||
-                        (!mQsExpanded && mDoubleTapToSleepEnabled
-                        && event.getY() < mStatusBarHeaderHeight)) {
-                    mDoubleTapToSleepGesture.onTouchEvent(event);
                 }
 
                 initDownStates(event);
