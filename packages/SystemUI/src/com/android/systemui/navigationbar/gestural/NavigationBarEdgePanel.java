@@ -138,7 +138,6 @@ public class NavigationBarEdgePanel extends View implements NavigationEdgeBackPl
             = new PathInterpolator(1.0f / RUBBER_BAND_AMOUNT_APPEAR, 1.0f, 1.0f, 1.0f);
 
     private final WindowManager mWindowManager;
-    private final VibratorHelper mVibratorHelper;
 
     /**
      * The paint the arrow is drawn with
@@ -294,7 +293,6 @@ public class NavigationBarEdgePanel extends View implements NavigationEdgeBackPl
 
         mWindowManager = context.getSystemService(WindowManager.class);
         mBackAnimation = backAnimation;
-        mVibratorHelper = Dependency.get(VibratorHelper.class);
 
         mDensity = context.getResources().getDisplayMetrics().density;
 
@@ -672,7 +670,6 @@ public class NavigationBarEdgePanel extends View implements NavigationEdgeBackPl
         boolean isSlow = Math.abs(mVelocityTracker.getXVelocity()) < 500;
         if (isSlow
                 || SystemClock.uptimeMillis() - mVibrationTime >= GESTURE_DURATION_FOR_CLICK_MS) {
-            mVibratorHelper.vibrate(VibrationEffect.EFFECT_CLICK);
         }
 
         // Let's also snap the angle a bit
@@ -769,8 +766,6 @@ public class NavigationBarEdgePanel extends View implements NavigationEdgeBackPl
         // Apply a haptic on drag slop passed
         if (!mDragSlopPassed && touchTranslation > mSwipeTriggerThreshold) {
             mDragSlopPassed = true;
-            mVibratorHelper.vibrate(VibrationEffect.EFFECT_TICK);
-            mVibrationTime = SystemClock.uptimeMillis();
 
             // Let's show the arrow and animate it in!
             mDisappearAmount = 0.0f;
