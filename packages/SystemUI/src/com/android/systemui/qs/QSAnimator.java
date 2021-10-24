@@ -108,6 +108,8 @@ public class QSAnimator implements Callback, PageListener, Listener, OnLayoutCha
     // Animator for brightness slider(s)
     @Nullable
     private TouchAnimator mBrightnessAnimator;
+    @Nullable
+    private TouchAnimator mQQSBrightnessAnimator;
     // Animator for Footer actions in QQS
     private TouchAnimator mQQSFooterActionsAnimator;
     // Height animator for QQS tiles (height changing from QQS size to QS size)
@@ -689,6 +691,9 @@ public class QSAnimator implements Callback, PageListener, Listener, OnLayoutCha
             if (pair != null) {
                 pair.first.setPosition(position);
                 pair.second.setPosition(position);
+            }
+            if (mQQSBrightnessAnimator != null) {
+                mQQSBrightnessAnimator.setPosition(position);
             }
         }
         if (mQQSTileHeightAnimator != null) {

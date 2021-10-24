@@ -21,6 +21,7 @@ import static com.android.systemui.qs.dagger.QSFragmentModule.QS_USING_COLLAPSED
 import static com.android.systemui.qs.dagger.QSFragmentModule.QS_USING_MEDIA_PLAYER;
 
 import androidx.annotation.VisibleForTesting;
+import android.view.View;
 
 import com.android.internal.logging.MetricsLogger;
 import com.android.internal.logging.UiEventLogger;
@@ -32,6 +33,10 @@ import com.android.systemui.plugins.qs.QSTile;
 import com.android.systemui.qs.customize.QSCustomizerController;
 import com.android.systemui.qs.dagger.QSScope;
 import com.android.systemui.qs.logging.QSLogger;
+import com.android.systemui.settings.brightness.BrightnessController;
+import com.android.systemui.settings.brightness.BrightnessSliderController;
+import com.android.systemui.statusbar.policy.BrightnessMirrorController;
+import com.android.systemui.tuner.TunerService;
 import com.android.systemui.util.leak.RotationUtils;
 
 import java.util.ArrayList;
@@ -44,6 +49,13 @@ import javax.inject.Named;
 @QSScope
 public class QuickQSPanelController extends QSPanelControllerBase<QuickQSPanel> {
 
+    private final TunerService mTunerService;
+    private final BrightnessController mBrightnessController;
+    private final BrightnessSliderController.Factory mBrightnessSliderFactory;
+    private final BrightnessSliderController mBrightnessSlider;
+
+    private BrightnessMirrorController mBrightnessMirrorController;
+
     private final QSPanel.OnConfigurationChangedListener mOnConfigurationChangedListener =
             newConfig -> {
                 int newMaxTiles = getResources().getInteger(R.integer.quick_qs_panel_max_tiles);
@@ -53,6 +65,8 @@ public class QuickQSPanelController extends QSPanelControllerBase<QuickQSPanel> 
             };
 
     private final boolean mUsingCollapsedLandscapeMedia;
+    private final BrightnessMirrorController.BrightnessMirrorListener mBrightnessMirrorListener =
+            mirror -> updateBrightnessMirror();
 
     @Inject
     QuickQSPanelController(QuickQSPanel view, QSTileHost qsTileHost,
@@ -61,10 +75,20 @@ public class QuickQSPanelController extends QSPanelControllerBase<QuickQSPanel> 
             @Named(QUICK_QS_PANEL) MediaHost mediaHost,
             @Named(QS_USING_COLLAPSED_LANDSCAPE_MEDIA) boolean usingCollapsedLandscapeMedia,
             MetricsLogger metricsLogger, UiEventLogger uiEventLogger, QSLogger qsLogger,
-            DumpManager dumpManager
+            DumpManager dumpManager, TunerService tunerService,
+            BrightnessController.Factory brightnessControllerFactory,
+            BrightnessSliderController.Factory brightnessSliderFactory
     ) {
         super(view, qsTileHost, qsCustomizerController, usingMediaPlayer, mediaHost, metricsLogger,
                 uiEventLogger, qsLogger, dumpManager);
+        mTunerService = tunerService;
+        mBrightnessSliderFactory = brightnessSliderFactory;
+
+        mBrightnessSlider = mBrightnessSliderFactory.create(getContext(), mView);
+        mView.setBrightnessView(mBrightnessSlider.getRootView());
+
+        mBrightnessController = brightnessControllerFactory.create(
+                mBrightnessSlider.getIconView(), mBrightnessSlider);
         mUsingCollapsedLandscapeMedia = usingCollapsedLandscapeMedia;
     }
 
@@ -74,6 +98,7 @@ public class QuickQSPanelController extends QSPanelControllerBase<QuickQSPanel> 
         updateMediaExpansion();
         mMediaHost.setShowsOnlyActiveMedia(true);
         mMediaHost.init(MediaHierarchyManager.LOCATION_QQS);
+        mBrightnessSlider.init();
     }
 
     private void updateMediaExpansion() {
@@ -95,13 +120,68 @@ public class QuickQSPanelController extends QSPanelControllerBase<QuickQSPanel> 
     @Override
     protected void onViewAttached() {
         super.onViewAttached();
+
+        mTunerService.addTunable(mView, QSPanel.QS_SHOW_BRIGHTNESS);
+        mTunerService.addTunable(mView, QSPanel.QS_BRIGHTNESS_POSITION_BOTTOM);
+        mTunerService.addTunable(mView, QSPanel.QS_SHOW_AUTO_BRIGHTNESS_BUTTON);
+        mTunerService.addTunable(mView, QuickQSPanel.QQS_BRIGHTNESS_SLIDER);
+
+        mView.setBrightnessRunnable(() -> {
+            mView.updateResources();
+            updateBrightnessMirror();
+        });
+
         mView.addOnConfigurationChangedListener(mOnConfigurationChangedListener);
+        if (mBrightnessMirrorController != null) {
+            mBrightnessMirrorController.addCallback(mBrightnessMirrorListener);
+        }
+
     }
 
     @Override
     protected void onViewDetached() {
         super.onViewDetached();
+        mTunerService.removeTunable(mView);
+        mView.setBrightnessRunnable(null);
         mView.removeOnConfigurationChangedListener(mOnConfigurationChangedListener);
+        if (mBrightnessMirrorController != null) {
+            mBrightnessMirrorController.removeCallback(mBrightnessMirrorListener);
+        }
+    }
+
+    @Override
+    public void setListening(boolean listening) {
+        super.setListening(listening);
+        // Set the listening as soon as the QS fragment starts listening regardless of the
+        //expansion, so it will update the current brightness before the slider is visible.
+        if (listening) {
+            mBrightnessController.registerCallbacks();
+        } else {
+            mBrightnessController.unregisterCallbacks();
+        }
+    }
+
+    @Override
+    public void setBrightnessMirror(BrightnessMirrorController brightnessMirrorController) {
+        mBrightnessMirrorController = brightnessMirrorController;
+        if (mBrightnessMirrorController != null) {
+            mBrightnessMirrorController.removeCallback(mBrightnessMirrorListener);
+        }
+        mBrightnessMirrorController = brightnessMirrorController;
+        if (mBrightnessMirrorController != null) {
+            mBrightnessMirrorController.addCallback(mBrightnessMirrorListener);
+        }
+        updateBrightnessMirror();
+    }
+
+    public View getBrightnessView() {
+        return mView.getBrightnessView();
+    }
+
+    private void updateBrightnessMirror() {
+        if (mBrightnessMirrorController != null) {
+            mBrightnessSlider.setMirrorControllerAndMirror(mBrightnessMirrorController);
+        }
     }
 
     private void setMaxTiles(int parseNumTiles) {
