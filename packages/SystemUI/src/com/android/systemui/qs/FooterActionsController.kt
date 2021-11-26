@@ -143,6 +143,23 @@ internal class FooterActionsController @Inject constructor(
         }
     }
 
+    private val onLongClickListener = View.OnLongClickListener { v ->
+        // Don't do anything if the tap looks suspicious.
+        if (!visible || falsingManager.isFalseTap(FalsingManager.LOW_PENALTY)) {
+            return@OnLongClickListener false
+        }
+        if (v === settingsButtonContainer) {
+            if (!deviceProvisionedController.isCurrentUserSetup) {
+                // If user isn't setup just unlock the device and dump them back at SUW.
+                activityStarter.postQSRunnableDismissingKeyguard {}
+                return@OnLongClickListener false
+            }
+            startXtensionsActivity()
+            return@OnLongClickListener true
+        }
+        return@OnLongClickListener false
+    }
+
     override fun onInit() {
         multiUserSwitchController.init()
         securityFooterController.init()
@@ -166,25 +183,23 @@ internal class FooterActionsController @Inject constructor(
     }
 
     private fun startXtensionsActivity() {
+        val intent = Intent()
+        intent.setClassName("com.android.settings",
+                "com.android.settings.Settings\$XtensionsSettingsActivity")
         val animationController = settingsButtonContainer?.let {
             ActivityLaunchAnimator.Controller.fromView(
                     it,
                     InteractionJankMonitor.CUJ_SHADE_APP_LAUNCH_FROM_SETTINGS_BUTTON)
             }
-        var nIntent: Intent = Intent(Intent.ACTION_DEFAULT)
-        nIntent.setClassName("com.android.settings",
-            "com.android.settings.Settings\$XtensionsSettingsActivity")
-        activityStarter.startActivity(nIntent, true /* dismissShade */, animationController)
+        activityStarter.startActivity(intent,
+                true /* dismissShade */, animationController)
     }
 
     @VisibleForTesting
     public override fun onViewAttached() {
         globalActionsDialog = globalActionsDialogProvider.get()
         settingsButtonContainer.setOnClickListener(onClickListener)
-        settingsButtonContainer.setOnLongClickListener { view ->
-            startXtensionsActivity()
-            true
-        }
+        settingsButtonContainer.setOnLongClickListener(onLongClickListener)
         multiUserSetting.isListening = true
 
         val securityFooter = securityFooterController.view
