@@ -21,6 +21,8 @@ import static com.android.systemui.qs.dagger.QSFragmentModule.QS_USING_COLLAPSED
 import static com.android.systemui.qs.dagger.QSFragmentModule.QS_USING_MEDIA_PLAYER;
 
 import androidx.annotation.VisibleForTesting;
+import android.os.UserHandle;
+import android.provider.Settings;
 import android.view.View;
 
 import com.android.internal.logging.MetricsLogger;
@@ -35,8 +37,7 @@ import com.android.systemui.qs.dagger.QSScope;
 import com.android.systemui.qs.logging.QSLogger;
 import com.android.systemui.settings.brightness.BrightnessController;
 import com.android.systemui.settings.brightness.BrightnessSliderController;
-import com.android.systemui.statusbar.policy.BrightnessMirrorController;
-import com.android.systemui.tuner.TunerService;
+import com.android.systemui.util.settings.SystemSettings;
 import com.android.systemui.util.leak.RotationUtils;
 
 import java.util.ArrayList;
@@ -49,12 +50,10 @@ import javax.inject.Named;
 @QSScope
 public class QuickQSPanelController extends QSPanelControllerBase<QuickQSPanel> {
 
-    private final TunerService mTunerService;
     private final BrightnessController mBrightnessController;
     private final BrightnessSliderController.Factory mBrightnessSliderFactory;
     private final BrightnessSliderController mBrightnessSlider;
-
-    private BrightnessMirrorController mBrightnessMirrorController;
+    private final SystemSettings mSystemSettings;
 
     private final QSPanel.OnConfigurationChangedListener mOnConfigurationChangedListener =
             newConfig -> {
@@ -65,8 +64,6 @@ public class QuickQSPanelController extends QSPanelControllerBase<QuickQSPanel> 
             };
 
     private final boolean mUsingCollapsedLandscapeMedia;
-    private final BrightnessMirrorController.BrightnessMirrorListener mBrightnessMirrorListener =
-            mirror -> updateBrightnessMirror();
 
     @Inject
     QuickQSPanelController(QuickQSPanel view, QSTileHost qsTileHost,
@@ -75,16 +72,17 @@ public class QuickQSPanelController extends QSPanelControllerBase<QuickQSPanel> 
             @Named(QUICK_QS_PANEL) MediaHost mediaHost,
             @Named(QS_USING_COLLAPSED_LANDSCAPE_MEDIA) boolean usingCollapsedLandscapeMedia,
             MetricsLogger metricsLogger, UiEventLogger uiEventLogger, QSLogger qsLogger,
-            DumpManager dumpManager, TunerService tunerService,
+            DumpManager dumpManager,
             BrightnessController.Factory brightnessControllerFactory,
-            BrightnessSliderController.Factory brightnessSliderFactory
+            BrightnessSliderController.Factory brightnessSliderFactory,
+            SystemSettings systemSettings
     ) {
         super(view, qsTileHost, qsCustomizerController, usingMediaPlayer, mediaHost, metricsLogger,
                 uiEventLogger, qsLogger, dumpManager);
-        mTunerService = tunerService;
+        mSystemSettings = systemSettings;
         mBrightnessSliderFactory = brightnessSliderFactory;
 
-        mBrightnessSlider = mBrightnessSliderFactory.create(getContext(), mView);
+        mBrightnessSlider = brightnessSliderFactory.create(getContext(), mView);
         mView.setBrightnessView(mBrightnessSlider.getRootView());
 
         mBrightnessController = brightnessControllerFactory.create(
@@ -121,32 +119,25 @@ public class QuickQSPanelController extends QSPanelControllerBase<QuickQSPanel> 
     protected void onViewAttached() {
         super.onViewAttached();
 
-        mTunerService.addTunable(mView, QSPanel.QS_SHOW_BRIGHTNESS);
-        mTunerService.addTunable(mView, QSPanel.QS_BRIGHTNESS_POSITION_BOTTOM);
-        mTunerService.addTunable(mView, QSPanel.QS_SHOW_AUTO_BRIGHTNESS_BUTTON);
-        mTunerService.addTunable(mView, QuickQSPanel.QQS_BRIGHTNESS_SLIDER);
-
-        mView.setBrightnessRunnable(() -> {
-            mView.updateResources();
-            updateBrightnessMirror();
-        });
+        mSystemSettings.registerContentObserverForUser(
+            Settings.System.QQS_SHOW_BRIGHTNESS,
+            mView.getSettingsObserver(), UserHandle.USER_ALL);
+        mSystemSettings.registerContentObserverForUser(
+            Settings.System.QS_BRIGHTNESS_POSITION_BOTTOM,
+            mView.getSettingsObserver(), UserHandle.USER_ALL);
+        mSystemSettings.registerContentObserverForUser(
+            Settings.System.QS_SHOW_AUTO_BRIGHTNESS_BUTTON,
+            mView.getSettingsObserver(), UserHandle.USER_ALL);
 
         mView.addOnConfigurationChangedListener(mOnConfigurationChangedListener);
-        if (mBrightnessMirrorController != null) {
-            mBrightnessMirrorController.addCallback(mBrightnessMirrorListener);
-        }
-
     }
 
     @Override
     protected void onViewDetached() {
         super.onViewDetached();
-        mTunerService.removeTunable(mView);
         mView.setBrightnessRunnable(null);
+        mSystemSettings.unregisterContentObserver(mView.getSettingsObserver());
         mView.removeOnConfigurationChangedListener(mOnConfigurationChangedListener);
-        if (mBrightnessMirrorController != null) {
-            mBrightnessMirrorController.removeCallback(mBrightnessMirrorListener);
-        }
     }
 
     @Override
@@ -161,27 +152,8 @@ public class QuickQSPanelController extends QSPanelControllerBase<QuickQSPanel> 
         }
     }
 
-    @Override
-    public void setBrightnessMirror(BrightnessMirrorController brightnessMirrorController) {
-        mBrightnessMirrorController = brightnessMirrorController;
-        if (mBrightnessMirrorController != null) {
-            mBrightnessMirrorController.removeCallback(mBrightnessMirrorListener);
-        }
-        mBrightnessMirrorController = brightnessMirrorController;
-        if (mBrightnessMirrorController != null) {
-            mBrightnessMirrorController.addCallback(mBrightnessMirrorListener);
-        }
-        updateBrightnessMirror();
-    }
-
     public View getBrightnessView() {
         return mView.getBrightnessView();
-    }
-
-    private void updateBrightnessMirror() {
-        if (mBrightnessMirrorController != null) {
-            mBrightnessSlider.setMirrorControllerAndMirror(mBrightnessMirrorController);
-        }
     }
 
     private void setMaxTiles(int parseNumTiles) {

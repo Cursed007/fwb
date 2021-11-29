@@ -18,29 +18,28 @@ package com.android.systemui.qs;
 
 import android.content.Context;
 import android.content.res.Configuration;
+import android.net.Uri;
+import android.os.UserHandle;
+import android.provider.Settings;
 import android.util.AttributeSet;
 import android.view.View;
 import android.view.accessibility.AccessibilityNodeInfo;
 import android.widget.LinearLayout;
 
 import com.android.internal.logging.UiEventLogger;
-import com.android.systemui.Dependency;
 import com.android.systemui.R;
 import com.android.systemui.plugins.qs.QSTile;
 import com.android.systemui.plugins.qs.QSTile.SignalState;
 import com.android.systemui.plugins.qs.QSTile.State;
-import com.android.systemui.tuner.TunerService;
 
 /**
  * Version of QSPanel that only shows N Quick Tiles in the QS Header.
  */
-public class QuickQSPanel extends QSPanel implements TunerService.Tunable {
+public class QuickQSPanel extends QSPanel {
 
     private static final String TAG = "QuickQSPanel";
     // A fallback value for max tiles number when setting via Tuner (parseNumTiles)
     public static final int TUNER_MAX_TILES_FALLBACK = 6;
-
-    public static final String QQS_BRIGHTNESS_SLIDER = "sysui_qqs_brightness_slider";
 
     private boolean mDisabledByPolicy;
     private int mMaxTiles;
@@ -62,21 +61,15 @@ public class QuickQSPanel extends QSPanel implements TunerService.Tunable {
         }
     }
 
-    View getBrightnessView() {
-        return mBrightnessView;
-    }
-
-    public void setBrightnessViewMargin(boolean top) {
+    @Override
+    protected void setBrightnessViewMargin(boolean top) {
         if (mBrightnessView != null) {
             MarginLayoutParams lp = (MarginLayoutParams) mBrightnessView.getLayoutParams();
             if (top) {
-                lp.topMargin = mContext.getResources()
-                        .getDimensionPixelSize(R.dimen.qs_brightness_margin_top) / 2;
-                lp.bottomMargin = mContext.getResources()
-                        .getDimensionPixelSize(R.dimen.qs_brightness_margin_bottom);
+                lp.topMargin = getResources().getDimensionPixelSize(R.dimen.qs_brightness_margin_top) / 2;
+                lp.bottomMargin = getResources().getDimensionPixelSize(R.dimen.qs_brightness_margin_bottom);
             } else {
-                lp.topMargin = mContext.getResources()
-                        .getDimensionPixelSize(R.dimen.qs_tile_margin_vertical);
+                lp.topMargin = getResources().getDimensionPixelSize(R.dimen.qs_tile_margin_vertical);
                 lp.bottomMargin = 0;
             }
             mBrightnessView.setLayoutParams(lp);
@@ -87,6 +80,8 @@ public class QuickQSPanel extends QSPanel implements TunerService.Tunable {
     protected void setHorizontalContentContainerClipping() {
         mHorizontalContentContainer.setClipToPadding(false);
         mHorizontalContentContainer.setClipChildren(false);
+        updateShowQQSBrightness();
+        setBrightnessViewMargin(mTop);
     }
 
     @Override
@@ -142,36 +137,6 @@ public class QuickQSPanel extends QSPanel implements TunerService.Tunable {
         mMaxTiles = maxTiles;
     }
 
-    @Override
-    public void onTuningChanged(String key, String newValue) {
-        if ((QQS_BRIGHTNESS_SLIDER.equals(key) || QS_SHOW_BRIGHTNESS.equals(key)) && mBrightnessView != null) {
-            boolean mQQsSlider = Dependency.get(TunerService.class).getValue(
-                    QQS_BRIGHTNESS_SLIDER, 0) == 1;
-            boolean mQsSlider = Dependency.get(TunerService.class).getValue(
-                    QS_SHOW_BRIGHTNESS, 1) == 1;
-            mBrightnessView.setVisibility(mQQsSlider && mQsSlider ? VISIBLE : GONE);
-        }
-        if (QS_BRIGHTNESS_POSITION_BOTTOM.equals(key)) {
-            mTop = newValue == null || Integer.parseInt(newValue) == 0;
-            removeView(mBrightnessView);
-            addView(mBrightnessView, mTop ? 0 : 1);
-            setBrightnessViewMargin(mTop);
-            if (mBrightnessRunnable != null) {
-                mBrightnessRunnable.run();
-            }
-        }
-        if (QS_SHOW_AUTO_BRIGHTNESS_BUTTON.equals(key)) {
-            mShowAutoBrightnessButton = newValue == null
-                    || Integer.parseInt(newValue) == 1;
-            mAutoBrightnessIcon.setVisibility(
-                    mShowAutoBrightnessButton ? View.VISIBLE : View.GONE);
-        }
-    }
-
-    public void setBrightnessRunnable(Runnable runnable) {
-        mBrightnessRunnable = runnable;
-    }
-
     public int getNumQuickTiles() {
         return mMaxTiles;
     }
@@ -195,7 +160,7 @@ public class QuickQSPanel extends QSPanel implements TunerService.Tunable {
     void setDisabledByPolicy(boolean disabled) {
         if (disabled != mDisabledByPolicy) {
             mDisabledByPolicy = disabled;
-            setVisibility(disabled ? View.GONE : View.VISIBLE);
+            setVisibility(disabled ? GONE : VISIBLE);
         }
     }
 
@@ -208,10 +173,10 @@ public class QuickQSPanel extends QSPanel implements TunerService.Tunable {
     @Override
     public void setVisibility(int visibility) {
         if (mDisabledByPolicy) {
-            if (getVisibility() == View.GONE) {
+            if (getVisibility() == GONE) {
                 return;
             }
-            visibility = View.GONE;
+            visibility = GONE;
         }
         super.setVisibility(visibility);
     }
@@ -229,6 +194,24 @@ public class QuickQSPanel extends QSPanel implements TunerService.Tunable {
     @Override
     protected QSEvent tileVisibleEvent() {
         return QSEvent.QQS_TILE_VISIBLE;
+    }
+
+    @Override
+    protected void onChange(boolean selfChange, Uri uri) {
+        if (uri.getLastPathSegment().equals(Settings.System.QQS_SHOW_BRIGHTNESS)) {
+            updateShowQQSBrightness();
+        } else {
+            super.onChange(selfChange, uri);
+        }
+    }
+
+    private void updateShowQQSBrightness() {
+        if (mBrightnessView != null) {
+            final boolean visible = Settings.System.getIntForUser(
+                mContext.getContentResolver(), Settings.System.QQS_SHOW_BRIGHTNESS,
+                0, UserHandle.USER_CURRENT) == 1;
+            mBrightnessView.setVisibility(visible ? VISIBLE : GONE);
+        }
     }
 
     @Override
@@ -305,11 +288,11 @@ public class QuickQSPanel extends QSPanel implements TunerService.Tunable {
             // We set it as not important while we change this, so setting each tile as selected
             // will not cause them to announce themselves until the user has actually selected the
             // item.
-            setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS);
+            setImportantForAccessibility(IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS);
             for (int i = 0; i < getChildCount(); i++) {
                 getChildAt(i).setSelected(selected);
             }
-            setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_AUTO);
+            setImportantForAccessibility(IMPORTANT_FOR_ACCESSIBILITY_AUTO);
             mLastSelected = selected;
         }
     }

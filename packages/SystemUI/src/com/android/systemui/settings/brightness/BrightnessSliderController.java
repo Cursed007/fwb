@@ -262,8 +262,8 @@ public class BrightnessSliderController extends ViewController<BrightnessSliderV
             int layout = getLayout();
             BrightnessSliderView root = (BrightnessSliderView) LayoutInflater.from(context)
                     .inflate(layout, viewRoot, false);
-            ImageView icon = (ImageView) root.findViewById(R.id.brightness_icon);
-            return new BrightnessSliderController(root, icon, mFalsingManager);
+            return new BrightnessSliderController(root, root.findViewById(R.id.brightness_icon),
+                 mFalsingManager);
         }
 
         /** Get the layout to inflate based on what slider to use */

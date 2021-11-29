@@ -18,11 +18,12 @@ package com.android.systemui.settings.brightness;
 
 import static android.view.ViewGroup.LayoutParams.MATCH_PARENT;
 import static android.view.ViewGroup.LayoutParams.WRAP_CONTENT;
-import static com.android.systemui.qs.QSPanel.QS_SHOW_AUTO_BRIGHTNESS_BUTTON;
 
 import android.app.Activity;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.UserHandle;
+import android.provider.Settings;
 import android.view.Gravity;
 import android.view.KeyEvent;
 import android.view.View;
@@ -37,32 +38,31 @@ import com.android.systemui.Dependency;
 import com.android.systemui.R;
 import com.android.systemui.broadcast.BroadcastDispatcher;
 import com.android.systemui.dagger.qualifiers.Background;
-import com.android.systemui.tuner.TunerService;
-import com.android.systemui.tuner.TunerService.Tunable;
+import com.android.systemui.util.settings.SystemSettings;
 
 import javax.inject.Inject;
 
 /** A dialog that provides controls for adjusting the screen brightness. */
-public class BrightnessDialog extends Activity implements Tunable {
+public class BrightnessDialog extends Activity {
 
     private BrightnessController mBrightnessController;
     private final BrightnessSliderController.Factory mToggleSliderFactory;
     private final BroadcastDispatcher mBroadcastDispatcher;
     private final Handler mBackgroundHandler;
 
-    private ImageView mAutoBrightnessIcon;
-    private boolean mShowAutoBrightnessButton;
+    private final SystemSettings mSystemSettings;
 
     @Inject
     public BrightnessDialog(
             BroadcastDispatcher broadcastDispatcher,
             BrightnessSliderController.Factory factory,
-            @Background Handler bgHandler) {
+            @Background Handler bgHandler,
+            SystemSettings systemSettings) {
         mBroadcastDispatcher = broadcastDispatcher;
         mToggleSliderFactory = factory;
         mBackgroundHandler = bgHandler;
+        mSystemSettings = systemSettings;
     }
-
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -89,12 +89,15 @@ public class BrightnessDialog extends Activity implements Tunable {
         controller.init();
         frame.addView(controller.getRootView(), MATCH_PARENT, WRAP_CONTENT);
 
-        mAutoBrightnessIcon = controller.getIconView();
-        mShowAutoBrightnessButton = Dependency.get(TunerService.class).getValue(
-            QS_SHOW_AUTO_BRIGHTNESS_BUTTON, 1) == 1;
-        mAutoBrightnessIcon.setVisibility(!mShowAutoBrightnessButton
-                        ? View.GONE : View.VISIBLE);
-        mBrightnessController = new BrightnessController(this, mAutoBrightnessIcon,
+        final ImageView icon = controller.getIconView();
+        final boolean configEnabled = getResources().getBoolean(
+            com.android.internal.R.bool.config_automatic_brightness_available);
+        final boolean showAutoBrightnessButton = mSystemSettings.getIntForUser(
+            Settings.System.QS_SHOW_AUTO_BRIGHTNESS_BUTTON,
+            0, UserHandle.USER_CURRENT) == 1;
+        icon.setVisibility((configEnabled && showAutoBrightnessButton)
+            ? View.VISIBLE : View.GONE);
+        mBrightnessController = new BrightnessController(this, icon,
                 controller, mBroadcastDispatcher, mBackgroundHandler);
     }
 
@@ -103,7 +106,6 @@ public class BrightnessDialog extends Activity implements Tunable {
         super.onStart();
         mBrightnessController.registerCallbacks();
         MetricsLogger.visible(this, MetricsEvent.BRIGHTNESS_DIALOG);
-        Dependency.get(TunerService.class).addTunable(this, QS_SHOW_AUTO_BRIGHTNESS_BUTTON);
     }
 
     @Override
@@ -117,7 +119,6 @@ public class BrightnessDialog extends Activity implements Tunable {
         super.onStop();
         MetricsLogger.hidden(this, MetricsEvent.BRIGHTNESS_DIALOG);
         mBrightnessController.unregisterCallbacks();
-        Dependency.get(TunerService.class).removeTunable(this);
     }
 
     @Override
@@ -129,17 +130,5 @@ public class BrightnessDialog extends Activity implements Tunable {
         }
 
         return super.onKeyDown(keyCode, event);
-    }
-
-    @Override
-    public void onTuningChanged(String key, String newValue) {
-        if (QS_SHOW_AUTO_BRIGHTNESS_BUTTON.equals(key)) {
-            if (mAutoBrightnessIcon != null) {
-                mShowAutoBrightnessButton = (newValue == null
-                        || Integer.parseInt(newValue) == 0) ? false : true;
-                mAutoBrightnessIcon.setVisibility(!mShowAutoBrightnessButton
-                        ? View.GONE : View.VISIBLE);
-            }
-        }
     }
 }

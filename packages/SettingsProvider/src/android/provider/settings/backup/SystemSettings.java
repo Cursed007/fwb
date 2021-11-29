@@ -96,5 +96,9 @@ public class SystemSettings {
         Settings.System.NAVIGATION_BAR_INVERSE,
         Settings.System.NAVBAR_LAYOUT_VIEWS,
         Settings.System.DOZE_ON_CHARGE,
+        Settings.System.QS_SHOW_BRIGHTNESS,
+        Settings.System.QQS_SHOW_BRIGHTNESS,
+        Settings.System.QS_BRIGHTNESS_POSITION_BOTTOM,
+        Settings.System.QS_SHOW_AUTO_BRIGHTNESS_BUTTON,
     };
 }

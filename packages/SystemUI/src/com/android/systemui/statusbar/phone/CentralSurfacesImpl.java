@@ -1333,10 +1333,9 @@ public class CentralSurfacesImpl extends CoreStartable implements
                         updateScrimController();
                     });
             fragmentHostManager.addTagListener(QS.TAG, (tag, f) -> {
-                QS qs = (QS) f;
-                if (qs instanceof QSFragment) {
-                    mQSPanelController = ((QSFragment) qs).getQSPanelController();
-                    ((QSFragment) qs).setBrightnessMirrorController(mBrightnessMirrorController);
+                if (f instanceof QSFragment) {
+                    mQSPanelController = ((QSFragment) f).getQSPanelController();
+                    ((QSFragment) f).setBrightnessMirrorController(mBrightnessMirrorController);
                 }
             });
         }

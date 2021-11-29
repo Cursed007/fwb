@@ -16,12 +16,14 @@
 
 package com.android.systemui.statusbar.phone;
 
-import static com.android.systemui.qs.QSPanel.QS_SHOW_AUTO_BRIGHTNESS_BUTTON;
 
 import android.app.StatusBarManager;
+import android.database.ContentObserver;
 import android.hardware.display.AmbientDisplayConfiguration;
 import android.media.AudioManager;
 import android.media.session.MediaSessionLegacyHelper;
+import android.net.Uri;
+import android.os.Handler;
 import android.os.SystemClock;
 import android.os.UserHandle;
 import android.provider.Settings;
@@ -38,6 +40,7 @@ import com.android.internal.annotations.VisibleForTesting;
 import com.android.keyguard.LockIconViewController;
 import com.android.systemui.R;
 import com.android.systemui.classifier.FalsingCollector;
+import com.android.systemui.dagger.qualifiers.Main;
 import com.android.systemui.dock.DockManager;
 import com.android.systemui.keyguard.KeyguardUnlockAnimationController;
 import com.android.systemui.lowlightclock.LowLightClockController;
@@ -52,7 +55,8 @@ import com.android.systemui.statusbar.notification.stack.NotificationStackScroll
 import com.android.systemui.statusbar.phone.dagger.CentralSurfacesComponent;
 import com.android.systemui.statusbar.phone.panelstate.PanelExpansionStateManager;
 import com.android.systemui.statusbar.window.StatusBarWindowStateController;
-import com.android.systemui.tuner.TunerService;
+import com.android.systemui.util.settings.SecureSettings;
+import com.android.systemui.util.settings.SystemSettings;
 
 import java.io.PrintWriter;
 import java.util.Optional;
@@ -66,7 +70,6 @@ import javax.inject.Inject;
 public class NotificationShadeWindowViewController {
     private static final String TAG = "NotifShadeWindowVC";
     private final FalsingCollector mFalsingCollector;
-    private final TunerService mTunerService;
     private final SysuiStatusBarStateController mStatusBarStateController;
     private final NotificationShadeWindowView mView;
     private final NotificationShadeDepthController mDepthController;
@@ -95,8 +98,12 @@ public class NotificationShadeWindowViewController {
     private final NotificationPanelViewController mNotificationPanelViewController;
     private final PanelExpansionStateManager mPanelExpansionStateManager;
     private final Optional<LowLightClockController> mLowLightClockController;
+    private final SystemSettings mSystemSettings;
+    private final SecureSettings mSecureSettings;
+    private final Handler mHandler;
+    private final boolean mAutoBrightnessConfigEnabled;
 
-    private ImageView mAutoBrightnessIcon;
+    private View mAutoBrightnessIcon;
     private boolean mShowAutoBrightnessButton;
 
     private boolean mIsTrackingBarGesture = false;
@@ -105,7 +112,6 @@ public class NotificationShadeWindowViewController {
     public NotificationShadeWindowViewController(
             LockscreenShadeTransitionController transitionController,
             FalsingCollector falsingCollector,
-            TunerService tunerService,
             SysuiStatusBarStateController statusBarStateController,
             DockManager dockManager,
             NotificationShadeDepthController depthController,
@@ -120,10 +126,12 @@ public class NotificationShadeWindowViewController {
             CentralSurfaces centralSurfaces,
             NotificationShadeWindowController controller,
             KeyguardUnlockAnimationController keyguardUnlockAnimationController,
-            AmbientState ambientState) {
+            AmbientState ambientState,
+            SystemSettings systemSettings,
+            SecureSettings secureSettings,
+            @Main Handler mainHandler) {
         mLockscreenShadeTransitionController = transitionController;
         mFalsingCollector = falsingCollector;
-        mTunerService = tunerService;
         mStatusBarStateController = statusBarStateController;
         mView = notificationShadeWindowView;
         mDockManager = dockManager;
@@ -139,13 +147,18 @@ public class NotificationShadeWindowViewController {
         mNotificationShadeWindowController = controller;
         mKeyguardUnlockAnimationController = keyguardUnlockAnimationController;
         mAmbientState = ambientState;
+        mSystemSettings = systemSettings;
+        mSecureSettings = secureSettings;
+        mHandler = mainHandler;
 
         // This view is not part of the newly inflated expanded status bar.
         mBrightnessMirror = mView.findViewById(R.id.brightness_mirror_container);
-        mAutoBrightnessIcon = (ImageView)
-                mBrightnessMirror.findViewById(R.id.brightness_icon);
-        mShowAutoBrightnessButton = mTunerService.getValue(
-                QS_SHOW_AUTO_BRIGHTNESS_BUTTON, 1) == 1;
+        mAutoBrightnessIcon = mBrightnessMirror.findViewById(R.id.brightness_icon);
+        mAutoBrightnessConfigEnabled = mView.getContext().getResources().getBoolean(
+            com.android.internal.R.bool.config_automatic_brightness_available);
+        mShowAutoBrightnessButton = mAutoBrightnessConfigEnabled && mSystemSettings.getIntForUser(
+                Settings.System.QS_SHOW_AUTO_BRIGHTNESS_BUTTON,
+                0, UserHandle.USER_CURRENT) == 1;
     }
 
     /**
@@ -159,30 +172,43 @@ public class NotificationShadeWindowViewController {
     public void setupExpandedStatusBar() {
         mStackScrollLayout = mView.findViewById(R.id.notification_stack_scroller);
 
-        TunerService.Tunable tunable = (key, newValue) -> {
-            AmbientDisplayConfiguration configuration =
+        final ContentObserver contentObserver = new ContentObserver(mHandler) {
+            @Override
+            public void onChange(boolean selfChange, Uri uri) {
+                final AmbientDisplayConfiguration configuration =
                     new AmbientDisplayConfiguration(mView.getContext());
-            switch (key) {
-                case Settings.Secure.DOZE_DOUBLE_TAP_GESTURE:
-                    mDoubleTapEnabled = configuration.doubleTapGestureEnabled(
-                            UserHandle.USER_CURRENT);
-                    break;
-                case Settings.Secure.DOZE_TAP_SCREEN_GESTURE:
-                    mSingleTapEnabled = configuration.tapGestureEnabled(UserHandle.USER_CURRENT);
-                case QS_SHOW_AUTO_BRIGHTNESS_BUTTON:
-                    if (mAutoBrightnessIcon != null) {
-                        mShowAutoBrightnessButton = (newValue == null ||
-                                Integer.parseInt(newValue) == 0) ? false : true;
-                        mAutoBrightnessIcon.setVisibility(!mShowAutoBrightnessButton
-                                ? View.GONE : View.VISIBLE);
-                    }
-                    break;
+                switch (uri.getLastPathSegment()) {
+                    case Settings.Secure.DOZE_DOUBLE_TAP_GESTURE:
+                        mDoubleTapEnabled = configuration.doubleTapGestureEnabled(
+                                UserHandle.USER_CURRENT);
+                        break;
+                    case Settings.Secure.DOZE_TAP_SCREEN_GESTURE:
+                        mSingleTapEnabled = configuration.tapGestureEnabled(UserHandle.USER_CURRENT);
+                        break;
+                    case Settings.System.QS_SHOW_AUTO_BRIGHTNESS_BUTTON:
+                        if (mAutoBrightnessIcon != null) {
+                            mShowAutoBrightnessButton = mSystemSettings.getIntForUser(
+                                Settings.System.QS_SHOW_AUTO_BRIGHTNESS_BUTTON, 0,
+                                UserHandle.USER_CURRENT) == 1;
+                            mAutoBrightnessIcon.setVisibility(mShowAutoBrightnessButton
+                                    ? View.VISIBLE : View.GONE);
+                        }
+                        break;
+                }
             }
         };
-        mTunerService.addTunable(tunable,
-                Settings.Secure.DOZE_DOUBLE_TAP_GESTURE,
-                Settings.Secure.DOZE_TAP_SCREEN_GESTURE,
-                QS_SHOW_AUTO_BRIGHTNESS_BUTTON);
+
+        mSecureSettings.registerContentObserverForUser(
+            Settings.Secure.DOZE_DOUBLE_TAP_GESTURE,
+            contentObserver, UserHandle.USER_ALL);
+        mSecureSettings.registerContentObserverForUser(
+            Settings.Secure.DOZE_TAP_SCREEN_GESTURE,
+            contentObserver, UserHandle.USER_ALL);
+        if (mAutoBrightnessConfigEnabled) {
+            mSystemSettings.registerContentObserverForUser(
+                Settings.System.QS_SHOW_AUTO_BRIGHTNESS_BUTTON,
+                contentObserver, UserHandle.USER_ALL);
+        }
 
         GestureDetector.SimpleOnGestureListener gestureListener =
                 new GestureDetector.SimpleOnGestureListener() {
@@ -437,10 +463,9 @@ public class NotificationShadeWindowViewController {
             public void onChildViewAdded(View parent, View child) {
                 if (child.getId() == R.id.brightness_mirror_container) {
                     mBrightnessMirror = child;
-                    mAutoBrightnessIcon = (ImageView)
-                            child.findViewById(R.id.brightness_icon);
-                    mAutoBrightnessIcon.setVisibility(!mShowAutoBrightnessButton
-                            ? View.GONE : View.VISIBLE);
+                    mAutoBrightnessIcon = child.findViewById(R.id.brightness_icon);
+                    mAutoBrightnessIcon.setVisibility(mShowAutoBrightnessButton
+                            ? View.VISIBLE : View.GONE);
                 }
             }
 
