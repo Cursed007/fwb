@@ -113,6 +113,7 @@ import kotlin.Unit;
 @SysUISingleton
 public class UdfpsController implements DozeReceiver {
     private static final String TAG = "UdfpsController";
+    private static final String PULSE_ACTION = "com.android.systemui.doze.pulse";
     private static final long AOD_INTERRUPT_TIMEOUT_MILLIS = 1000;
 
     // Minimum required delay between consecutive touch logs in milliseconds.
@@ -287,9 +288,14 @@ public class UdfpsController implements DozeReceiver {
                 if (vendorCode == mUdfpsVendorCode) {
                     if ((mScreenOffFod && isDozing) /** Screen off and dozing */ ||
                             (mKeyguardUpdateMonitor.isDreaming() && mScreenOn) /** AOD or pulse */) {
-                         mPowerManager.wakeUp(mSystemClock.uptimeMillis(),
-                               PowerManager.WAKE_REASON_GESTURE, TAG);
-                       onAodInterrupt(0, 0, 0, 0);
+                        if (mContext.getResources().getBoolean(R.bool.config_pulseOnFingerDown)) {
+                            mContext.sendBroadcastAsUser(new Intent(PULSE_ACTION),
+                                   new UserHandle(UserHandle.USER_CURRENT));
+                        } else {
+                            mPowerManager.wakeUp(mSystemClock.uptimeMillis(),
+                                    PowerManager.WAKE_REASON_GESTURE, TAG);
+                        }
+                        onAodInterrupt(0, 0, 0, 0);
                     }
                 }
             }
