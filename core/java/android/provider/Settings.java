@@ -5913,13 +5913,6 @@ public final class Settings {
         public static final String RECENTS_LOCKED_TASKS = "recents_locked_tasks";
 
         /**
-         * Whether to hide navbar pill and keyboard space.
-         * Default 0.
-         * @hide
-         */
-        public static final String FULLSCREEN_GESTURES = "fullscreen_gestures";
-
-        /**
          * Keys we no longer back up under the current schema, but want to continue to
          * process when restoring historical backup datasets.
          *
@@ -11252,7 +11245,7 @@ public final class Settings {
 
         /**
          * Gesture navbar length mode.
-         * Supported modes: 0 for normal length, 1 for medium and 2 for long.
+         * Supported modes: 0 for hidden, 1 for normal length, 2 for medium and 3 for long.
          * Default 0.
          * @hide
          */
