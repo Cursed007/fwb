@@ -120,5 +120,8 @@
   
   <!-- Wether to handle audio direction changes between major call states -->
   <bool name="config_handleAudioDirectionChangesBetweenCallStateChanges">true</bool>
+  
+  <!-- Whether to force enable multi resolution configuration for camera -->
+    <bool name="config_forceMultiResolution">false</bool>
 
 </resources>
