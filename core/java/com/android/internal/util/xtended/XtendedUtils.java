@@ -318,4 +318,15 @@ public class XtendedUtils {
                 break;
         }
     }
+
+    public static void sendSystemKeyToStatusBar(int keyCode) {
+       IStatusBarService service = getStatusBarService();
+       if (service != null) {
+           try {
+                service.handleSystemKey(keyCode);
+           } catch (RemoteException e) {
+               // do nothing.
+           }
+       }
+    }
 }
