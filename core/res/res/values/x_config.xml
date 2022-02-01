@@ -173,4 +173,8 @@
     <!-- Path to warp charging status file -->
     <string name="config_WarpChargerStatusPath">/sys/class/power_supply/battery/fastchg_status</string>
 
+   <!-- List of system apps that are allowed to be locked with app lock.
+        Use with extreme caution. -->
+  <string-array name="config_appLockAllowedSystemApps" translatable="false" />
+  
 </resources>
