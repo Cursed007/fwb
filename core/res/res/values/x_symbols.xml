@@ -170,4 +170,6 @@
   <java-symbol type="string" name="unlock_application" />
   <java-symbol type="array" name="config_appLockAllowedSystemApps" />
   
+  <!-- These are system packages exempted from privacy indicator -->
+  <java-symbol type="array" name="config_indicatorExemptedPackageNames" />
 </resources>
