@@ -225,6 +225,13 @@ public class NotificationInterruptStateProviderImpl implements NotificationInter
             return false;
         }
 
+        if (shouldSkipHeadsUp(sbn)) {
+            if (DEBUG_HEADS_UP) {
+                Log.d(TAG, "No alerting: boring apps");
+            }
+            return false;
+        }
+
         if (!canAlertCommon(entry)) {
             return false;
         }
@@ -361,11 +368,16 @@ public class NotificationInterruptStateProviderImpl implements NotificationInter
     }
 
     public boolean shouldSkipHeadsUp(StatusBarNotification sbn) {
-        boolean isImportantHeadsUp = false;
-        String notificationPackageName = sbn.getPackageName().toLowerCase();
-        isImportantHeadsUp = notificationPackageName.contains("dialer") ||
-                notificationPackageName.contains("clock");
-        return !mStatusBarStateController.isDozing() && mLessBoringHeadsUp && !isImportantHeadsUp;
+        String notificationPackageName = sbn.getPackageName();
+
+        boolean isLessBoring = notificationPackageName.equals(getDefaultDialerPackage(mTm))
+                || notificationPackageName.toLowerCase().contains("clock");
+
+        return !mStatusBarStateController.isDozing() && mLessBoringHeadsUp && !isLessBoring;
+    }
+
+    private static String getDefaultDialerPackage(TelecomManager tm) {
+        return tm != null ? tm.getDefaultDialerPackage() : "";
     }
 
     /**
@@ -382,12 +394,6 @@ public class NotificationInterruptStateProviderImpl implements NotificationInter
                 mLogger.logNoAlertingSuppressedBy(sbn, mSuppressors.get(i), /* awake */ true);
                 return false;
             }
-        }
-        if (shouldSkipHeadsUp(sbn)) {
-            if (DEBUG_HEADS_UP) {
-                Log.d(TAG, "No alerting: less boring headsup enabled");
-            }
-            return false;
         }
         return true;
     }
