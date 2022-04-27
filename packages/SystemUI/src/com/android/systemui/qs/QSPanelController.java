@@ -21,6 +21,7 @@ import static com.android.systemui.media.dagger.MediaModule.QS_PANEL;
 import static com.android.systemui.qs.dagger.QSFragmentModule.QS_USING_MEDIA_PLAYER;
 
 import android.content.res.Configuration;
+import android.os.Handler;
 import android.os.UserHandle;
 import android.provider.Settings;
 import android.view.MotionEvent;
@@ -29,6 +30,7 @@ import android.view.View;
 import com.android.internal.logging.MetricsLogger;
 import com.android.internal.logging.UiEventLogger;
 import com.android.internal.logging.nano.MetricsProto.MetricsEvent;
+import com.android.systemui.dagger.qualifiers.Main;
 import com.android.systemui.dump.DumpManager;
 import com.android.systemui.media.MediaHierarchyManager;
 import com.android.systemui.media.MediaHost;
@@ -95,10 +97,10 @@ public class QSPanelController extends QSPanelControllerBase<QSPanel> {
             DumpManager dumpManager, MetricsLogger metricsLogger, UiEventLogger uiEventLogger,
             QSLogger qsLogger, BrightnessController.Factory brightnessControllerFactory,
             BrightnessSliderController.Factory brightnessSliderFactory,
-            FalsingManager falsingManager, SystemSettings systemSettings,
+            FalsingManager falsingManager, @Main Handler mainHandler, SystemSettings systemSettings,
             StatusBarKeyguardViewManager statusBarKeyguardViewManager) {
         super(view, qstileHost, qsCustomizerController, usingMediaPlayer, mediaHost,
-                metricsLogger, uiEventLogger, qsLogger, dumpManager);
+                metricsLogger, uiEventLogger, qsLogger, dumpManager, mainHandler, systemSettings);
         mQsCustomizerController = qsCustomizerController;
         mQsTileRevealControllerFactory = qsTileRevealControllerFactory;
         mFalsingManager = falsingManager;

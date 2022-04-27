@@ -100,5 +100,7 @@ public class SystemSettings {
         Settings.System.QQS_SHOW_BRIGHTNESS,
         Settings.System.QS_BRIGHTNESS_POSITION_BOTTOM,
         Settings.System.QS_SHOW_AUTO_BRIGHTNESS_BUTTON,
+        Settings.System.QS_TILE_LABEL_HIDE,
+        Settings.System.QS_TILE_VERTICAL_LAYOUT,
     };
 }

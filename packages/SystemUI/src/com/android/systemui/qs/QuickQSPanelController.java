@@ -21,6 +21,7 @@ import static com.android.systemui.qs.dagger.QSFragmentModule.QS_USING_COLLAPSED
 import static com.android.systemui.qs.dagger.QSFragmentModule.QS_USING_MEDIA_PLAYER;
 
 import androidx.annotation.VisibleForTesting;
+import android.os.Handler;
 import android.os.UserHandle;
 import android.provider.Settings;
 import android.view.View;
@@ -28,6 +29,7 @@ import android.view.View;
 import com.android.internal.logging.MetricsLogger;
 import com.android.internal.logging.UiEventLogger;
 import com.android.systemui.R;
+import com.android.systemui.dagger.qualifiers.Main;
 import com.android.systemui.dump.DumpManager;
 import com.android.systemui.media.MediaHierarchyManager;
 import com.android.systemui.media.MediaHost;
@@ -75,10 +77,11 @@ public class QuickQSPanelController extends QSPanelControllerBase<QuickQSPanel> 
             DumpManager dumpManager,
             BrightnessController.Factory brightnessControllerFactory,
             BrightnessSliderController.Factory brightnessSliderFactory,
+            @Main Handler mainHandler,
             SystemSettings systemSettings
     ) {
         super(view, qsTileHost, qsCustomizerController, usingMediaPlayer, mediaHost, metricsLogger,
-                uiEventLogger, qsLogger, dumpManager);
+                uiEventLogger, qsLogger, dumpManager, mainHandler, systemSettings);
         mSystemSettings = systemSettings;
         mBrightnessSliderFactory = brightnessSliderFactory;
 
