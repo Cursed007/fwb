@@ -55,7 +55,7 @@ public class QuickQSPanel extends QSPanel {
         }
         mBrightnessView = view;
         mAutoBrightnessIcon = view.findViewById(R.id.brightness_icon);
-        setBrightnessViewMargin(true);
+        setBrightnessViewMargin(mTop);
         if (mBrightnessView != null) {
             addView(mBrightnessView);
         }
@@ -67,7 +67,7 @@ public class QuickQSPanel extends QSPanel {
             MarginLayoutParams lp = (MarginLayoutParams) mBrightnessView.getLayoutParams();
             if (top) {
                 lp.topMargin = getResources().getDimensionPixelSize(R.dimen.qs_brightness_margin_top) / 2;
-                lp.bottomMargin = getResources().getDimensionPixelSize(R.dimen.qs_brightness_margin_bottom);
+                lp.bottomMargin = getResources().getDimensionPixelSize(R.dimen.qs_brightness_margin_bottom) / 2;
             } else {
                 lp.topMargin = getResources().getDimensionPixelSize(R.dimen.qs_tile_margin_vertical);
                 lp.bottomMargin = 0;
@@ -209,7 +209,7 @@ public class QuickQSPanel extends QSPanel {
         if (mBrightnessView != null) {
             final boolean visible = Settings.System.getIntForUser(
                 mContext.getContentResolver(), Settings.System.QQS_SHOW_BRIGHTNESS,
-                0, UserHandle.USER_CURRENT) == 1;
+                1, UserHandle.USER_CURRENT) == 1;
             mBrightnessView.setVisibility(visible ? VISIBLE : GONE);
         }
     }

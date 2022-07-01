@@ -57,6 +57,7 @@ import androidx.annotation.VisibleForTesting;
 
 import com.android.internal.logging.UiEventLogger;
 import com.android.internal.widget.RemeasuringLinearLayout;
+import com.android.systemui.Dependency;
 import com.android.systemui.R;
 import com.android.systemui.plugins.qs.QSTile;
 import com.android.systemui.plugins.qs.QSTileView;
@@ -70,6 +71,9 @@ import java.util.Objects;
 public class QSPanel extends LinearLayout {
 
     private static final String TAG = "QSPanel";
+
+    public static final String QS_SHOW_BRIGHTNESS =
+            "system:" + Settings.System.QS_SHOW_BRIGHTNESS;
 
     protected final Context mContext;
     private final ContentObserver mSettingsObserver;
@@ -207,8 +211,11 @@ public class QSPanel extends LinearLayout {
         addView(view, 0);
         mBrightnessView = view;
         mAutoBrightnessIcon = view.findViewById(R.id.brightness_icon);
-        setBrightnessViewMargin(true);
-        mMovableContentStartIndex++;
+        setBrightnessViewMargin(mTop);
+        if (mBrightnessView != null) {
+            addView(mBrightnessView);
+            mMovableContentStartIndex++;
+        }
     }
 
     protected void setBrightnessViewMargin(boolean top) {
@@ -695,7 +702,7 @@ public class QSPanel extends LinearLayout {
     private void loadSliderPosition() {
         mTop = Settings.System.getIntForUser(mContext.getContentResolver(),
             Settings.System.QS_BRIGHTNESS_POSITION_BOTTOM,
-            0, UserHandle.USER_CURRENT) == 0;
+            1, UserHandle.USER_CURRENT) == 0;
     }
 
     private void updateBrightnessSliderPosition() {
@@ -712,7 +719,7 @@ public class QSPanel extends LinearLayout {
         mShowAutoBrightnessButton = Settings.System.getIntForUser(
             mContext.getContentResolver(),
             Settings.System.QS_SHOW_AUTO_BRIGHTNESS_BUTTON,
-            0, UserHandle.USER_CURRENT) == 1;
+            1, UserHandle.USER_CURRENT) == 1;
         mAutoBrightnessIcon.setVisibility(
             mShowAutoBrightnessButton ? VISIBLE : GONE);
     }
