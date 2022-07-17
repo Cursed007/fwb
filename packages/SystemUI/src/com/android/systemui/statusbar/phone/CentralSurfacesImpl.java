@@ -4276,6 +4276,9 @@ public class CentralSurfacesImpl extends CoreStartable implements
             resolver.registerContentObserver(Settings.Secure.getUriFor(
                     Settings.Secure.PULSE_ON_NEW_TRACKS),
                     false, this, UserHandle.USER_ALL);
+            resolver.registerContentObserver(Settings.System.getUriFor(
+                    Settings.System.RETICKER_STATUS),
+                    false, this, UserHandle.USER_ALL);
         }
 
         @Override
@@ -4312,6 +4315,9 @@ public class CentralSurfacesImpl extends CoreStartable implements
             } else if (uri.equals(Settings.Secure.getUriFor(
                     Settings.Secure.PULSE_ON_NEW_TRACKS))) {
                 setPulseOnNewTracks();
+            }  else if (uri.equals(Settings.System.getUriFor(
+                    Settings.System.RETICKER_STATUS))) {
+                setUseReTicker();
             }
         }
 
@@ -4325,6 +4331,7 @@ public class CentralSurfacesImpl extends CoreStartable implements
             setCustomQsAlpha();
             updateNavigationBarVisibility();
             setPulseOnNewTracks();
+            setUseReTicker();
         }
     }
 
@@ -4349,6 +4356,13 @@ public class CentralSurfacesImpl extends CoreStartable implements
                 Settings.System.LESS_BORING_HEADS_UP, 1,
                 UserHandle.USER_CURRENT) == 1;
         mNotificationInterruptStateProvider.setUseLessBoringHeadsUp(lessBoringHeadsUp);
+    }
+
+    private void setUseReTicker() {
+        boolean reTicker = Settings.System.getIntForUser(mContext.getContentResolver(),
+                Settings.System.RETICKER_STATUS, 0,
+                UserHandle.USER_CURRENT) == 1;
+        mNotificationInterruptStateProvider.setUseReticker(reTicker);
     }
 
     private void updateBurnInSets() {
