@@ -4249,6 +4249,9 @@ public class CentralSurfacesImpl extends CoreStartable implements
             resolver.registerContentObserver(Settings.System.getUriFor(
                     Settings.System.STATUS_BAR_BRIGHTNESS_CONTROL),
                     false, this, UserHandle.USER_ALL);
+            resolver.registerContentObserver(Settings.System.getUriFor(
+                    Settings.System.QS_TRANSPARENCY),
+                    false, this, UserHandle.USER_ALL);
         }
 
         @Override
@@ -4276,6 +4279,9 @@ public class CentralSurfacesImpl extends CoreStartable implements
                     Settings.System.STATUS_BAR_BRIGHTNESS_CONTROL)) ||
                 uri.equals(Settings.System.getUriFor(Settings.System.SCREEN_BRIGHTNESS_MODE))) {
                 setScreenBrightnessMode();
+            }  else if (uri.equals(Settings.System.getUriFor(
+                    Settings.System.QS_TRANSPARENCY))) {
+                setCustomQsAlpha();
             }
         }
 
@@ -4286,6 +4292,7 @@ public class CentralSurfacesImpl extends CoreStartable implements
             setUseLessBoringHeadsUp();
             updateBurnInSets();
             setScreenBrightnessMode();
+            setCustomQsAlpha();
         }
     }
 
@@ -4328,6 +4335,12 @@ public class CentralSurfacesImpl extends CoreStartable implements
         mBrightnessControl = Settings.System.getIntForUser(
             mContext.getContentResolver(), Settings.System.STATUS_BAR_BRIGHTNESS_CONTROL, 0,
             UserHandle.USER_CURRENT) == 1;
+    }
+
+    private void setCustomQsAlpha() {
+        mScrimController.setCustomScrimAlpha(Settings.System.getIntForUser(
+	mContext.getContentResolver(), Settings.System.QS_TRANSPARENCY, 100,
+        UserHandle.USER_CURRENT));
     }
 
     private final BroadcastReceiver mBannerActionBroadcastReceiver = new BroadcastReceiver() {
