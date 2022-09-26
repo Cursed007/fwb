@@ -55,10 +55,11 @@ public class QuickQSPanel extends QSPanel {
         }
         mBrightnessView = view;
         mAutoBrightnessIcon = view.findViewById(R.id.brightness_icon);
-        setBrightnessViewMargin(mTop);
         if (mBrightnessView != null) {
             addView(mBrightnessView);
         }
+        setBrightnessViewMargin(mTop);
+        updatePadding();
     }
 
     @Override
@@ -67,10 +68,10 @@ public class QuickQSPanel extends QSPanel {
             MarginLayoutParams lp = (MarginLayoutParams) mBrightnessView.getLayoutParams();
             if (top) {
                 lp.topMargin = getResources().getDimensionPixelSize(R.dimen.qs_brightness_margin_top) / 2;
-                lp.bottomMargin = getResources().getDimensionPixelSize(R.dimen.qs_brightness_margin_bottom) / 2;
+                lp.bottomMargin = getResources().getDimensionPixelSize(R.dimen.quick_qs_brightness_margin_top) / 2;
             } else {
                 lp.topMargin = getResources().getDimensionPixelSize(R.dimen.qs_tile_margin_vertical);
-                lp.bottomMargin = 0;
+                lp.bottomMargin = getResources().getDimensionPixelSize(R.dimen.qs_tile_margin_vertical) / 2;
             }
             mBrightnessView.setLayoutParams(lp);
         }
@@ -103,9 +104,10 @@ public class QuickQSPanel extends QSPanel {
 
     @Override
     protected void updatePadding() {
-        int bottomPadding = getResources().getDimensionPixelSize(R.dimen.qqs_layout_padding_bottom);
+        int topPadding = getResources().getDimensionPixelSize(R.dimen.qqs_layout_margin_top) / 2;
+        int bottomPadding = getResources().getDimensionPixelSize(R.dimen.qqs_layout_padding_bottom) / 2;
         setPaddingRelative(getPaddingStart(),
-                getPaddingTop(),
+                topPadding,
                 getPaddingEnd(),
                 bottomPadding);
     }
@@ -209,9 +211,10 @@ public class QuickQSPanel extends QSPanel {
         if (mBrightnessView != null) {
             final boolean visible = Settings.System.getIntForUser(
                 mContext.getContentResolver(), Settings.System.QQS_SHOW_BRIGHTNESS,
-                1, UserHandle.USER_CURRENT) == 1;
+                0, UserHandle.USER_CURRENT) == 1;
             mBrightnessView.setVisibility(visible ? VISIBLE : GONE);
         }
+        setBrightnessViewMargin(mTop);
     }
 
     @Override

@@ -208,7 +208,6 @@ public class QSPanel extends LinearLayout {
             removeView(mBrightnessView);
             mMovableContentStartIndex--;
         }
-        addView(view, 0);
         mBrightnessView = view;
         mAutoBrightnessIcon = view.findViewById(R.id.brightness_icon);
         setBrightnessViewMargin(mTop);
@@ -222,11 +221,11 @@ public class QSPanel extends LinearLayout {
         if (mBrightnessView != null) {
             MarginLayoutParams lp = (MarginLayoutParams) mBrightnessView.getLayoutParams();
             if (top) {
-                lp.topMargin = getResources().getDimensionPixelSize(R.dimen.qs_brightness_margin_top);
-                lp.bottomMargin = getResources().getDimensionPixelSize(R.dimen.qs_brightness_margin_bottom);
+                lp.topMargin = getResources().getDimensionPixelSize(R.dimen.qs_brightness_margin_top) / 2;
+                lp.bottomMargin = getResources().getDimensionPixelSize(R.dimen.qs_brightness_margin_bottom) / 2;
             } else {
-                lp.topMargin = getResources().getDimensionPixelSize(R.dimen.quick_qs_brightness_margin_top);
-                lp.bottomMargin = 0;
+                lp.topMargin = getResources().getDimensionPixelSize(R.dimen.qs_tile_margin_vertical);
+                lp.bottomMargin = getResources().getDimensionPixelSize(R.dimen.qs_tile_margin_vertical) / 2;
             }
             mBrightnessView.setLayoutParams(lp);
         }
@@ -702,7 +701,7 @@ public class QSPanel extends LinearLayout {
     private void loadSliderPosition() {
         mTop = Settings.System.getIntForUser(mContext.getContentResolver(),
             Settings.System.QS_BRIGHTNESS_POSITION_BOTTOM,
-            1, UserHandle.USER_CURRENT) == 0;
+            0, UserHandle.USER_CURRENT) == 0;
     }
 
     private void updateBrightnessSliderPosition() {
@@ -719,7 +718,7 @@ public class QSPanel extends LinearLayout {
         mShowAutoBrightnessButton = Settings.System.getIntForUser(
             mContext.getContentResolver(),
             Settings.System.QS_SHOW_AUTO_BRIGHTNESS_BUTTON,
-            1, UserHandle.USER_CURRENT) == 1;
+            0, UserHandle.USER_CURRENT) == 1;
         mAutoBrightnessIcon.setVisibility(
             mShowAutoBrightnessButton ? VISIBLE : GONE);
     }
