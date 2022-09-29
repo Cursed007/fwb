@@ -134,6 +134,7 @@ import com.android.internal.util.hwkeys.ActionUtils;
 import com.android.internal.util.hwkeys.PackageMonitor;
 import com.android.internal.util.hwkeys.PackageMonitor.PackageChangedListener;
 import com.android.internal.util.hwkeys.PackageMonitor.PackageState;
+import com.android.internal.util.xtended.XtendedUtils;
 import com.android.keyguard.KeyguardUpdateMonitor;
 import com.android.keyguard.KeyguardUpdateMonitorCallback;
 import com.android.keyguard.ViewMediatorCallback;
@@ -980,17 +981,6 @@ public class CentralSurfacesImpl extends CoreStartable implements
         mColorExtractor.addOnColorsChangedListener(mOnColorsChangedListener);
         mStatusBarStateController.addCallback(mStateListener,
                 SysuiStatusBarStateController.RANK_STATUS_BAR);
-
-        mNeedsNavigationBar = mContext.getResources().getBoolean(
-                com.android.internal.R.bool.config_showNavigationBar);
-        // Allow a system property to override this. Used by the emulator.
-        // See also hasNavigationBar().
-        String navBarOverride = SystemProperties.get("qemu.hw.mainkeys");
-        if ("1".equals(navBarOverride)) {
-            mNeedsNavigationBar = false;
-        } else if ("0".equals(navBarOverride)) {
-            mNeedsNavigationBar = true;
-        }
 
         mDisplayManager = mContext.getSystemService(DisplayManager.class);
 
@@ -4208,7 +4198,6 @@ public class CentralSurfacesImpl extends CoreStartable implements
 
     private final NavigationBarController mNavigationBarController;
     private final AccessibilityFloatingMenuController mAccessibilityFloatingMenuController;
-    private boolean mNeedsNavigationBar;
 
     // UI-specific methods
 
@@ -4365,12 +4354,11 @@ public class CentralSurfacesImpl extends CoreStartable implements
     private void updateNavigationBarVisibility() {
          if (mDisplayId != Display.DEFAULT_DISPLAY || mWindowManagerService == null)
              return;
-         boolean forceNavBar = Settings.System.getIntForUser(
+         boolean mNavbarVisible = Settings.System.getIntForUser(
              mContext.getContentResolver(), Settings.System.FORCE_SHOW_NAVBAR,
-             0, UserHandle.USER_CURRENT) == 1;
-         boolean forcedVisibility = mNeedsNavigationBar || forceNavBar;
+             XtendedUtils.hasNavbarByDefault(mContext) ? 1 : 0, UserHandle.USER_CURRENT) == 1;
          boolean hasNavbar = getNavigationBarView() != null;
-         if (forcedVisibility) {
+         if (mNavbarVisible) {
              if (!hasNavbar) {
                  try {
                      mNavigationBarController.onDisplayReady(mDisplayId);
