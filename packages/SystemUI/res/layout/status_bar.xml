@@ -76,7 +76,6 @@
                     android:id="@+id/clock"
                     android:layout_width="wrap_content"
                     android:layout_height="match_parent"
-                    android:textAppearance="@style/TextAppearance.StatusBar.Clock"
                     android:singleLine="true"
                     android:visibility="gone"
                     android:paddingStart="@dimen/status_bar_left_clock_starting_padding"
@@ -89,7 +88,6 @@
                     android:layout_width="0dp"
                     android:layout_height="match_parent"
                     android:layout_weight="1"
-                    android:layout_gravity="center_vertical"
                     android:gravity="center_vertical|start"
                     android:clipChildren="false"/>
 
@@ -147,7 +145,6 @@
 
         <com.android.systemui.statusbar.policy.ClockRight
             android:id="@+id/right_clock"
-            android:textAppearance="@style/TextAppearance.StatusBar.Clock"
             android:layout_width="wrap_content"
             android:layout_height="match_parent"
             android:singleLine="true"
@@ -167,7 +164,6 @@
         >
         <com.android.systemui.statusbar.policy.ClockCenter
             android:id="@+id/center_clock"
-            android:textAppearance="@style/TextAppearance.StatusBar.Clock"
             android:gravity="center"
             android:layout_width="wrap_content"
             android:layout_height="match_parent"
