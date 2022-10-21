@@ -27,6 +27,7 @@ import android.annotation.Nullable;
 import android.content.Context;
 import android.content.res.Configuration;
 import android.database.ContentObserver;
+import android.content.res.Resources;
 import android.graphics.Rect;
 import android.net.Uri;
 import android.os.Bundle;
@@ -35,6 +36,7 @@ import android.os.Looper;
 import android.os.Message;
 import android.os.UserHandle;
 import android.provider.Settings;
+import android.provider.Settings.Secure; 
 import android.util.ArrayMap;
 import android.util.AttributeSet;
 import android.util.Log;
@@ -395,8 +397,9 @@ public class QSPanel extends LinearLayout {
     }
 
     protected void updatePadding() {
-        int paddingTop = getResources().getDimensionPixelSize(R.dimen.qs_panel_padding_top);
-        int paddingBottom = getResources().getDimensionPixelSize(R.dimen.qs_panel_padding_bottom);
+        final Resources res = mContext.getResources();
+        int paddingTop = res.getDimensionPixelSize(R.dimen.qs_panel_padding_top);
+        int paddingBottom = res.getDimensionPixelSize(R.dimen.qs_panel_padding_bottom);
         setPaddingRelative(getPaddingStart(),
                 paddingTop,
                 getPaddingEnd(),
