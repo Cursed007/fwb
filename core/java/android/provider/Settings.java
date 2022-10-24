@@ -5852,6 +5852,12 @@ public final class Settings {
         public static final String FOD_NIGHT_LIGHT = "fod_night_light";
 
         /**
+         * Whether to enable fingerprint wake-and-unlock.
+         * @hide
+         */
+        public static final String FINGERPRINT_WAKE_UNLOCK = "fingerprint_wake_unlock";
+        
+        /**
          * Setting to hold the current set overlay for color bucket.
          * overlay package name (String)
          * @hide
