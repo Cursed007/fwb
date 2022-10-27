@@ -36,7 +36,6 @@ import android.os.Looper;
 import android.os.Message;
 import android.os.UserHandle;
 import android.provider.Settings;
-import android.provider.Settings.Secure; 
 import android.util.ArrayMap;
 import android.util.AttributeSet;
 import android.util.Log;
