@@ -141,8 +141,8 @@ class AuthRippleController @Inject constructor(
                     it.y,
                     0f,
                     Math.max(
-                        Math.max(it.x, statusBar.displayWidth - it.x),
-                        Math.max(it.y, statusBar.displayHeight - it.y)
+                        Math.max(it.x, centralSurfaces.displayWidth - it.x),
+                        Math.max(it.y, centralSurfaces.displayHeight - it.y)
                     )
                 )
                 }
@@ -209,6 +209,10 @@ class AuthRippleController @Inject constructor(
                     addUpdateListener { animator ->
                         if (lightRevealScrim.revealEffect != circleReveal) {
                             // if something else took over the reveal, let's cancel ourselves
+                            // When the animator is almost done, fully reveal the scrim.
+                            if (animator.animatedValue as Float >= 0.9999f) {
+                                lightRevealScrim.revealAmount = 1f
+                            }
                             cancel()
                             return@addUpdateListener
                         }
